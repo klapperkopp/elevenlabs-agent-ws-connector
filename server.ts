@@ -364,7 +364,8 @@ app.get('/events', (req, res) => {
 app.post('/transferCallBack', async (req, res) => {
   try {
     console.log("Transfer callback event received:\n", req.body)
-    const { callerNumber, conversationId, transferTarget } = req.body
+    const { callerId, conversationId, transferTarget } = req.body
+    console.log("Original Elevenlabs Caller ID:", callerId)
     const vonageConversation = conversations[conversationId]
     const vonageCallUuid = JSON.parse(vonageConversation).uuid || ""
     // transfer call with PUT to target
