@@ -13,7 +13,7 @@ This server connects Vonage Voice API callers (phone, sip, app) to ElevenLabs Ag
 2. You need an [Elevenlabs Account](https://elevenlabs.io/)
 3. Localtunnel, ngrok or similar for local development, to expose your server to the internet
    - Localtunnel comes with the project and will be setup automatically to use your application ID as the public url of your server. So for example your domain will be https://<your_vonage_app_id>.loca.lt
-   - You can set .env variable *LOCALTUNNEL_SUBDOMAIN* to any alphanumeric value to set your own <LOCALTUNNEL_SUBDOMAIN>.loca.lt address. This is based on avialability, so use a unique string that might not be taken already if you set this.
+   - You can set .env variable *LOCALTUNNEL_SUBDOMAIN* to any alphanumeric value to set your own <LOCALTUNNEL_SUBDOMAIN>.loca.lt address. This is based on availability, so use a unique string that might not be taken already if you set this.
 
 # Local Setup & Run
 
