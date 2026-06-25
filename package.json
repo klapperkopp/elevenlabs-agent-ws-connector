@@ -1,8 +1,8 @@
 {
   "name": "vonage-elevenlabs-websocket-voice-connector",
   "version": "1.0.0",
-  "description": "## What this Connector application does",
-  "main": "elevenlabs-agent-ws-connector.ts",
+  "description": "Connects Vonage Voice API callers (phone, sip, app) to ElevenLabs Agents for real-time voice communication",
+  "main": "server.ts",
   "type": "module",
   "scripts": {
     "start": "node server.ts",

@@ -1,3 +1,7 @@
+# Vonage Voice x Elevenlabs AI Connector for Websocket audio
+
+This server connects Vonage Voice API callers (phone, sip, app) to ElevenLabs Agents for real-time voice communication. This is a sample application not intended for production use. Please apply security best practices when deploying.
+
 # Pre-Requisites
 1. You need a [Vonage API Account](https://dashboard.vonage.com)
    - [Create a new Vonage Application](https://dashboard.vonage.com/applications/new)
