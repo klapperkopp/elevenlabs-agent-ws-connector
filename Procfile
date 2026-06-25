@@ -1,1 +1,1 @@
-web: node ./elevenlabs-agent-ws-connector.ts
+web: node ./server.ts
