@@ -1,0 +1,30 @@
+{
+  "name": "11l-agent-ws-connector",
+  "version": "1.0.0",
+  "description": "## What this Connector application does",
+  "main": "elevenlabs-agent-ws-connector.ts",
+  "type": "module",
+  "scripts": {
+    "start": "node elevenlabs-agent-ws-connector.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tony Chan & Toni Kuschan",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@elevenlabs/elevenlabs-js": "^2.54.0",
+    "@vonage/jwt": "^1.14.0",
+    "axios": "^1.18.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-ws": "^5.0.2",
+    "moment": "^2.30.1",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/express-ws": "^3.0.6",
+    "@types/localtunnel": "^2.0.4",
+    "@types/ws": "^8.18.1",
+    "localtunnel": "^2.0.2"
+  }
+}
