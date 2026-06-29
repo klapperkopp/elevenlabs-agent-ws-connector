@@ -37,10 +37,26 @@ This server connects Vonage Voice API callers (phone, sip, app) to ElevenLabs Ag
    - Method: POST
    - Url: https://<your_subdomain.loca.lt>/transferCallBack
    - Body Parameters:
+     - *transferType:* (String, Constant, required) - "phone" or "sip" depending on how you want to forward the call. Please note that this affects the transferTarget parameter. If you use "phone" then transferTarget has to be an E.164 format phone number, ifyou use "sip", it must be a valid sip uri.
      - *transferTarget:* (String, Constant, required) - Set this to the phone number you want to redirect to
      - *conversationId:* (String, Dynamic Variable, required) - Set this to system__conversation_id
      - *callerId:* (String, Dynamic Variable, optional) - Set this to system__caller_id (currently not working for cetrain call types, due to elevenlabs deficiencies)
+     - *SipHeader_XXX:* (String, Constan or Dynamic, optional) - You can define as many SIP Headers to be added, if the transfer target is a SIP url. Just Call them SipHeader_<name> e.g. SipHeader_OriginalCaller. All Variables starting with "SipHeader_" will be added to "sip" forwards.
 3. Use the tool in your agent if you want to trasnfer the call over to the *transferTarget* number (e.g. for human escalation)
+
+# Other Useful Information:
+- When forwarding an incoming Vonage Contact Center (VCC) SIP call via Vonage Voice API to Elevenlabs, we are automatically adding the following important headers to the elevenlabs conversation as parameters (visible in the agent conversation view in elevenlabs under the 'client data' tab.)
+  - vapi_conversation_id - the Vonage Voice API Conversation ID (of the incoming call that is forwarded to elevenlabs)
+  - vapi_call_uuid  - the Vonage Voice API Call ID (of the incoming call that is forwarded to elevenlabs)
+  - vapi_from - the Vonage Voice API Inbound caller ID (this would be the VCC number in the case of VCC forwarding to the voice APi number)
+  - vapi_to - the Vonage Voice API called virtual number (used by VCC for the forward)
+  - vapi_endpoint_type - the Vonage Voice API inbound call endpoint (can be phone, sip, webocket or app)
+  - vapi_region_url - the Vonage Voice API regions server url used for the call (e.g. EU)
+  - vcc_sip_call_guid - The original Call ID of the users inbound call on VCC side
+  - vcc_sip_caller_id - The original Caller ID of the user calling the contact center.
+  - vcc_sip_session_id -  The original SIP Session ID from VCC side
+- All of the above headers are also autoamtically passed thorugh to Vonage Contact Center in the case of a "sip" transfer too call. We are storing them in temporarily in RAM and passing them on if the tool call for transfer happens. To actually being able to receive these headers on VCC side, pelase make sure to whitelist them, with the names from above.
+
 
 # Questions?
 Feel free to reach out to toni.kuschan at vonage.com.

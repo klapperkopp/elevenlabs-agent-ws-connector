@@ -69,7 +69,27 @@ const streamTimer = setInterval(() => {
 //--- Websocket server (for WebSockets from Vonage Voice API platform) ---
 app.ws('/socket', async (ws, req) => {
   try {
-    const { from, to, conversation_uuid, endpoint_type, uuid, region_url } = req.query
+    const { from, to, conversation_uuid, endpoint_type, uuid, region_url,
+      'SipHeader_X-NVM-Call-Guid': vcc_sip_call_guid,
+      'SipHeader_X-Vgai-Caller-ID': vcc_sip_caller_id,
+      'SipHeader_X-Vgai-Session-ID': vcc_sip_session_id
+    } = req.query
+    console.log("SOCKET HEADERS & QUERY:", req.headers, req.query)
+
+    /*
+    to: '447520660060',
+  endpoint_type: 'sip',
+  from: '442036950598',
+  'SipHeader_X-NVM-Routing': 'appdtype="I", aver=1, apptype="callcentre", Acc="NVMDemo152", ca1="null", ca2="null", AccID=064175, Transport=006, NodeId=474',
+  'SipHeader_X-RU': '+2850000075447520660060',
+  'SipHeader_X-NVM-Call-Guid': '019f03a2-bba2-4d95-96e5-ceb94fe31585',
+  'SipHeader_X-Vgai-Caller-ID': '+4915140046124',
+  'SipHeader_X-Von-Ingress-IP': '10.160.192.141',
+  'SipHeader_X-Vgai-Session-ID': '019f03a2-bba2-4d95-96e5-ceb94fe31585, Damien, Toni',
+  conversation_uuid: 'CON-f6b0690f-f80c-4cd1-9820-97279b74f777',
+  uuid: '1793d6653c833e0563de13342c0b192f',
+  region_url: 'https://api-eu-3.vonage.com'
+  */
 
     const { signedUrl } = await elevenlabsClient.conversationalAi.conversations.getSignedUrl({
       agentId: ELEVENLABS_AGENT_ID as string,
@@ -79,7 +99,17 @@ app.ws('/socket', async (ws, req) => {
     const { conversation_id } = qs.parse(signedUrl)
     console.log("Precreated conversation ID:", conversation_id)
 
-    conversations[conversation_id as string] = JSON.stringify({ from, to, conversation_uuid, uuid, endpoint_type, region_url })
+    conversations[conversation_id as string] = JSON.stringify({
+      "vapi_endpoint_type": endpoint_type as string,
+      "vapi_region_url": region_url as string,
+      "vapi_conversation_id": conversation_id as string,
+      "vapi_call_uuid": uuid as string,
+      "vapi_from": from as string,
+      "vapi_to": to as string,
+      "vcc_sip_call_guid": vcc_sip_call_guid as string,
+      "vcc_sip_caller_id": vcc_sip_caller_id as string,
+      "vcc_sip_session_id": vcc_sip_session_id as string,
+    })
 
     console.log('>>> WebSocket from Vonage platform')
     console.log('>>> Vonage call uuid:', uuid)
@@ -167,7 +197,15 @@ app.ws('/socket', async (ws, req) => {
           }
         },
         "dynamic_variables": {
-          "vonage_conversation_id": conversation_id as string
+          "vapi_endpoint_type": endpoint_type as string,
+          "vapi_region_url": region_url as string,
+          "vapi_conversation_id": conversation_id as string,
+          "vapi_call_uuid": uuid as string,
+          "vapi_from": from as string,
+          "vapi_to": to as string,
+          "vcc_sip_call_guid": vcc_sip_call_guid as string,
+          "vcc_sip_caller_id": vcc_sip_caller_id as string,
+          "vcc_sip_session_id": vcc_sip_session_id as string,
         }
         // https://elevenlabs.io/docs/eleven-agents/customization/personalization#conversation-initiation-client-data-structure
       }
@@ -305,8 +343,7 @@ app.get('/answer', async (req: express.Request, res: express.Response) => {
   try {
     console.log("CALL INCOMING: ", req.query)
     const host = req.get('host')
-    const { from, to, conversation_uuid, endpoint_type, uuid, region_url } = req.query
-    const vccSession = req.query['SipHeader_X-Vgai-Session-ID'] || 'unknown'
+    const { from } = req.query
     let ncco = [
       {
         action: 'connect',
@@ -315,12 +352,12 @@ app.get('/answer', async (req: express.Request, res: express.Response) => {
           type: 'websocket',
           uri: `wss://${host}/socket?${qs.stringify(req.query)}`,
           "content-type": "audio/l16;rate=16000",
-          headers: { "X-Vcc-Session": vccSession, "X-From": from, "X-To": to, "X-Conversation-Uuid": conversation_uuid, "X-Endpoint-Type": endpoint_type, "X-Uuid": uuid, "X-Region-Url": region_url }
         }]
       }]
 
     // We could technically connect directly to elevenlabs websocket here, 
     // but we are not doing this because we want to be able to manage the call if elevenlabs agents request a transfer
+    // also this seems to be broken at the moment, since elevenlabs is rejecting our websocket connections.
     if (process.env.USE_ELEVENLABS_WS_DIRECTLY == "true") {
       const { signedUrl } = await elevenlabsClient.conversationalAi.conversations.getSignedUrl({
         agentId: ELEVENLABS_AGENT_ID as string,
@@ -336,9 +373,8 @@ app.get('/answer', async (req: express.Request, res: express.Response) => {
           from: `${from}`,
           endpoint: [{
             type: 'websocket',
-            uri: `${signedUrl}`,
-            "content-type": "audio/l16;rate=16000",
-            headers: { "X-Vcc-Session": vccSession, "X-From": from, "X-To": to, "X-Conversation-Uuid": conversation_uuid, "X-Endpoint-Type": endpoint_type, "X-Uuid": uuid, "X-Region-Url": region_url }
+            uri: `${signedUrl}?${qs.stringify(req.query)}`,
+            "content-type": "audio/l16;rate=16000"
           }]
         }
       ]
@@ -364,15 +400,31 @@ app.get('/events', (req, res) => {
 app.post('/transferCallBack', async (req, res) => {
   try {
     console.log("Transfer callback event received:\n", req.body)
-    const { callerId, conversationId, transferTarget } = req.body
-    console.log("Original Elevenlabs Caller ID:", callerId)
+    const { conversationId, transferTarget, transferType } = req.body
+    const headers: Record<string, string> = {}
+    for await (const [key, value] of Object.entries(req.body.headers || {})) {
+      if (key.startsWith("SipHeader_")) headers[key] = value as string
+    }
     const vonageConversation = conversations[conversationId]
-    const vonageCallUuid = JSON.parse(vonageConversation).uuid || ""
-    // transfer call with PUT to target
-    const putUrl = "https://api.nexmo.com/v1/calls/" + vonageCallUuid
+    const callData = JSON.parse(vonageConversation) || {}
+
+    // transfer the call with voice api PUT request to a target destination NCCO
+    // this means we are modifying the initial inbound call id that came to Vonage API via virtual number to be connected back to Contact Center
+    const putUrl = "https://api.nexmo.com/v1/calls/" + callData.vapi_call_uuid
+
     console.log("Transferring call to:", transferTarget)
-    console.log("PUT URL:", putUrl)
-    const response = await axios.put(putUrl, {
+    console.log("Stored Call Data:", callData)
+
+    const endpointConfig = transferType === 'sip' ? {
+      "type": "sip",
+      "uri": transferTarget,
+      "headers": { ...callData, ...headers }
+    } : {
+      "type": "phone",
+      "number": transferTarget,
+    }
+
+    const ncco = {
       "action": "transfer",
       "destination": {
         "type": "ncco",
@@ -381,16 +433,14 @@ app.post('/transferCallBack', async (req, res) => {
             "action": "connect",
             "randomFromNumber": true,
             "endpoint": [
-              {
-                "type": "phone",
-                "number": transferTarget
-              }
+              { ...endpointConfig }
             ]
           }
         ]
-
       }
-    }, {
+    }
+
+    const response = await axios.put(putUrl, ncco, {
       headers: {
         "Authorization": `Bearer ${tokenGenerate(process.env.VONAGE_APP_ID as string, Buffer.from(process.env.VONAGE_PKEY_B64 as string, 'base64'), { exp: Math.floor(Date.now() / 1000) + 3600 })}`
       }
@@ -398,6 +448,7 @@ app.post('/transferCallBack', async (req, res) => {
       console.error("Error occurred while transferring call:", e.response.data)
       throw e
     })
+
     res.sendStatus(200)
   } catch (e) {
     console.error("Error occurred while processing transfer callback:", e)
