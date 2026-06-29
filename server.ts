@@ -402,7 +402,7 @@ app.post('/transferCallBack', async (req, res) => {
     console.log("Transfer callback event received:\n", req.body)
     const { conversationId, transferTarget, transferType } = req.body
     const headers: Record<string, string> = {}
-    for await (const [key, value] of Object.entries(req.body.headers || {})) {
+    for await (const [key, value] of Object.entries(req.body || {})) {
       if (key.startsWith("SipHeader_")) headers[key] = value as string
     }
     const vonageConversation = conversations[conversationId]
